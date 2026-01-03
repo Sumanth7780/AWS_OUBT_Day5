@@ -1,45 +1,25 @@
-name: ci
+name: CI
 
 on:
+  pull_request:
   push:
     branches: [ "main" ]
-  pull_request:
 
 jobs:
-  validate:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install pandas boto3 psycopg2-binary
+          pip install -r requirements.txt
 
-      - name: Smoke test (imports)
+      - name: Run unit tests
         run: |
-          python -c "import pandas, boto3, psycopg2; print('Imports OK')"
-
-      # OPTIONAL: run loader (only if secrets configured)
-      - name: Run dim_taxi_zone loader
-        if: ${{ secrets.DB_HOST != '' && secrets.S3_BUCKET != '' }}
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          S3_BUCKET: ${{ secrets.S3_BUCKET }}
-          S3_KEY: ${{ secrets.S3_KEY }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          RUN_BY: "github_actions"
-        run: |
-          python src/load_dim_taxi_zone.py
+          pytest -q
